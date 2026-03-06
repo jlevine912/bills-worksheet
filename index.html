@@ -583,6 +583,40 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   .welcome-foot{padding:12px 18px;}
 }
 @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* CATEGORY MANAGER */
+.cat-modal-overlay{display:none;position:fixed;inset:0;background:rgba(16,14,10,.55);backdrop-filter:blur(3px);z-index:800;align-items:center;justify-content:center;padding:20px;}
+.cat-modal-overlay.open{display:flex;}
+.cat-modal-panel{background:var(--paper);border-radius:12px;width:100%;max-width:420px;box-shadow:var(--shadow-lg);overflow:hidden;animation:panelIn .2s cubic-bezier(.34,1.4,.64,1);}
+.cat-modal-head{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;}
+.cat-modal-body{padding:16px 20px;max-height:340px;overflow-y:auto;}
+.cat-modal-foot{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;}
+.cat-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;border:1px solid var(--border-light);margin-bottom:7px;background:white;}
+.cat-item-name{flex:1;font-size:13px;font-weight:500;color:var(--ink);}
+.cat-item-default{font-size:10px;color:var(--ink-faint);font-style:italic;}
+.cat-item-del{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:16px;padding:0 4px;border-radius:4px;transition:color .14s;}
+.cat-item-del:hover{color:#b03a2e;}
+.cat-add-row{display:flex;gap:8px;margin-top:12px;}
+.cat-add-row input{flex:1;border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;color:var(--ink);}
+.cat-add-row input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(61,107,82,.12);}
+.cat-tag{background:var(--cream);border:1px solid var(--border-light);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--ink-light);font-weight:500;}
+.cat-header-clickable{cursor:pointer;transition:color .14s;}
+.cat-header-clickable:hover .cat-name-lbl{color:var(--green);}
+@media(max-width:640px){
+  .cat-modal-overlay{padding:0;align-items:flex-end;}
+  .cat-modal-panel{border-radius:16px 16px 0 0;max-height:85vh;}
+  .cat-modal-body{max-height:50vh;}
+}
+
+/* SETTINGS SUBNAV */
+.settings-subnav{display:flex;gap:2px;margin-bottom:22px;background:var(--cream);border:1px solid var(--border-light);border-radius:8px;padding:4px;}
+.settings-subnav-item{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:500;color:var(--ink-light);cursor:pointer;transition:all .15s;letter-spacing:.02em;white-space:nowrap;text-decoration:none;user-select:none;}
+.settings-subnav-item:hover{color:var(--ink);background:white;}
+.settings-subnav-item.active{background:white;color:var(--ink);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+@media(max-width:640px){
+  .settings-subnav{overflow-x:auto;gap:0;}
+  .settings-subnav-item{padding:7px 12px;font-size:11px;}
+}
 </style>
 </head>
 <body>
@@ -647,8 +681,15 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   <div class="content">
     <div class="top-bar"><div class="page-heading">Settings <small>active payees &amp; data</small></div></div>
 
+    <div class="settings-subnav" id="settings-subnav">
+      <a class="settings-subnav-item active" onclick="scrollToSection('section-data',this)">Data &amp; Backup</a>
+      <a class="settings-subnav-item" onclick="scrollToSection('section-password',this)">Password</a>
+      <a class="settings-subnav-item" onclick="scrollToSection('section-payees',this)">Payees</a>
+      <a class="settings-subnav-item" onclick="scrollToSection('section-categories',this)">Categories</a>
+    </div>
+
     <!-- DATA MANAGEMENT CARD -->
-    <div class="data-mgmt-card">
+    <div class="data-mgmt-card" id="section-data">
       <div class="data-mgmt-head">
         <div>
           <div class="dm-title">Data &amp; Backup</div>
@@ -682,7 +723,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
     </div>
 
     <!-- PASSWORD CARD -->
-    <div class="pw-card">
+    <div class="pw-card" id="section-password">
       <div class="pw-card-head">
         <div class="pw-card-title">🔒 Password Protection</div>
         <span class="pw-status off" id="pw-status-badge">Off</span>
@@ -695,8 +736,20 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
       </div>
     </div>
 
+    <div id="section-payees"></div>
     <div class="settings-hint">💡 Toggle payees on/off to control which appear in the <strong>Track Bills</strong> workflow.</div>
     <div id="settings-container" class="settings-grid"></div>
+
+    <div class="settings-card" id="section-categories" style="margin-top:22px">
+      <div class="sc-head" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-light);">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">Categories</div>
+          <div style="font-size:11px;color:var(--ink-faint);margin-top:2px">Manage payee categories</div>
+        </div>
+        <button class="btn-secondary" onclick="openCatModal()" style="font-size:11px;padding:6px 12px">✎ Edit</button>
+      </div>
+      <div id="cat-list-preview" style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
   </div>
 </div>
 
@@ -830,12 +883,18 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
         <div id="ac-filled-note" style="display:none" class="ac-filled-note">✓ Auto-filled from lookup <button onclick="acClearFill()">undo</button></div>
       </div>
       <div class="field-row-2">
-        <div><label class="fl">Category</label>
-          <select id="f-category">
-            <option>Utilities</option><option>Subscriptions</option><option>Insurance</option>
-            <option>Housing</option><option>Transportation</option><option>Healthcare</option>
-            <option>Food &amp; Grocery</option><option>Entertainment</option><option>Loans</option><option>Other</option>
-          </select>
+        <div>
+          <label class="fl">Category</label>
+          <select id="f-category" onchange="onCategorySelectChange(this)"></select>
+          <div id="new-cat-row" style="display:none;margin-top:6px;display:none;">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="text" id="new-cat-input" placeholder="Category name…" maxlength="40"
+                style="flex:1;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;color:var(--ink);"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();confirmNewCatInline();} if(event.key==='Escape') cancelNewCatInline();">
+              <button onclick="confirmNewCatInline()" class="btn-primary" style="font-size:11px;padding:6px 10px;white-space:nowrap">Add</button>
+              <button onclick="cancelNewCatInline()" class="btn-secondary" style="font-size:11px;padding:6px 10px">✕</button>
+            </div>
+          </div>
         </div>
         <div><label class="fl">Amount ($)</label><input type="number" id="f-amount" placeholder="0.00" min="0" step="0.01"></div>
       </div>
@@ -861,7 +920,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 if(localStorage.getItem('bw-tutorial-suppressed')==='1') localStorage.removeItem('bw-tutorial-suppressed');
 
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const CAT_ORDER=['Housing','Utilities','Insurance','Transportation','Healthcare','Food & Grocery','Subscriptions','Entertainment','Loans','Other'];
+let CAT_ORDER=['Housing','Utilities','Insurance','Transportation','Healthcare','Food & Grocery','Subscriptions','Entertainment','Loans','Other'];
 
 let bills    = [];
 let settings = {};
@@ -877,12 +936,13 @@ let hasUnsaved = false;
 
 const FS_SUPPORTED = ('showOpenFilePicker' in window);
 
-function allData(){ return {bills, settings, sessions, exportedAt: Date.now(), version: 1}; }
+function allData(){ return {bills, settings, sessions, categories: CAT_ORDER, exportedAt: Date.now(), version: 1}; }
 
 function loadFromObj(obj){
   bills    = Array.isArray(obj.bills)    ? obj.bills    : [];
   settings = (obj.settings && typeof obj.settings==='object') ? obj.settings : {};
   sessions = Array.isArray(obj.sessions) ? obj.sessions : [];
+  if(Array.isArray(obj.categories)&&obj.categories.length) CAT_ORDER=[...obj.categories];
 }
 
 // ── localStorage helpers ──────────────────────────────────
@@ -891,6 +951,8 @@ function lsLoad(){
     bills    = JSON.parse(localStorage.getItem('bw-bills')    || '[]');
     settings = JSON.parse(localStorage.getItem('bw-settings') || '{}');
     sessions = JSON.parse(localStorage.getItem('bw-sessions') || '[]');
+    const savedCats=JSON.parse(localStorage.getItem('bw-categories')||'null');
+    if(Array.isArray(savedCats)&&savedCats.length) CAT_ORDER=[...savedCats];
   } catch(e){ bills=[]; settings={}; sessions=[]; }
 }
 
@@ -898,6 +960,7 @@ function lsSave(){
   localStorage.setItem('bw-bills',    JSON.stringify(bills));
   localStorage.setItem('bw-settings', JSON.stringify(settings));
   localStorage.setItem('bw-sessions', JSON.stringify(sessions));
+  localStorage.setItem('bw-categories', JSON.stringify(CAT_ORDER));
 }
 
 // ── File System helpers ───────────────────────────────────
@@ -1269,7 +1332,7 @@ function renderPayees(){
         </div>
       </div>`;
     }).join('');
-    return `<div class="category-section">
+    return `<div class="category-section cat-header-clickable" onclick="openCatModalForSection('${cat}')">
       <div class="cat-header">
         <div class="cat-name">${esc(cat)}</div>
         <div class="cat-badge">${list.length}</div>
@@ -1292,6 +1355,8 @@ function togglePaid(id){ const b=bills.find(x=>x.id===id); if(b)b.paid=!b.paid; 
 
 /* ─── SETTINGS ───────────────────────────── */
 function renderSettings(){
+  renderCatPreview();
+  populateCategorySelect();
   const c=document.getElementById('settings-container');
   const groups={};
   bills.forEach(b=>{ (groups[b.category]=groups[b.category]||[]).push(b); });
@@ -1426,6 +1491,7 @@ function toggleSess(sid){
 /* ─── MODAL ──────────────────────────────── */
 function openModal(id=null,fromWizard=false){
   editingId=id; modalFromWizard=fromWizard;
+  populateCategorySelect();
   const del=document.getElementById('btn-del');
   if(id){
     const b=bills.find(x=>x.id===id);
@@ -2119,7 +2185,144 @@ document.addEventListener('mousedown', e=>{
   if(!e.target.closest('nav')&&!e.target.closest('.nav-mobile-menu')) closeNavMenu();
 });
 
-/* ─── EVENTS ─────────────────────────────── */
+
+/* ─── CATEGORY MANAGER ───────────────────── */
+const DEFAULT_CATS=['Housing','Utilities','Insurance','Transportation','Healthcare','Food & Grocery','Subscriptions','Entertainment','Loans','Other'];
+let _catDraft=[];
+
+function openCatModal(){
+  _catDraft=[...CAT_ORDER];
+  renderCatItems();
+  document.getElementById('cat-modal-overlay').classList.add('open');
+}
+
+function closeCatModal(){
+  document.getElementById('cat-modal-overlay').classList.remove('open');
+}
+
+function renderCatItems(){
+  const list=document.getElementById('cat-items-list');
+  list.innerHTML=_catDraft.map((cat,i)=>{
+    const isDefault=DEFAULT_CATS.includes(cat);
+    const inUse=bills.some(b=>b.category===cat);
+    return `<div class="cat-item">
+      <span class="cat-item-name">${esc(cat)}</span>
+      ${isDefault?'<span class="cat-item-default">default</span>':''}
+      <button class="cat-item-del" onclick="removeCat(${i})" title="${inUse?'Category in use — payees will move to Other':'Remove'}" ${inUse?'style="opacity:.35;cursor:not-allowed"':''} ${inUse?'disabled':''}>×</button>
+    </div>`;
+  }).join('');
+}
+
+function removeCat(i){
+  _catDraft.splice(i,1);
+  renderCatItems();
+}
+
+function addCategory(){
+  const inp=document.getElementById('cat-new-input');
+  const val=inp.value.trim();
+  if(!val) return;
+  if(_catDraft.some(c=>c.toLowerCase()===val.toLowerCase())){
+    inp.style.borderColor='#b03a2e';
+    setTimeout(()=>inp.style.borderColor='',1200);
+    return;
+  }
+  _catDraft.push(val);
+  inp.value='';
+  renderCatItems();
+}
+
+function resetCategories(){
+  if(!confirm('Reset to default categories? Custom categories not in use will be removed.')) return;
+  _catDraft=[...DEFAULT_CATS];
+  // keep any custom ones still in use
+  bills.forEach(b=>{ if(b.category&&!_catDraft.includes(b.category)) _catDraft.push(b.category); });
+  renderCatItems();
+}
+
+function saveCategoriesAndClose(){
+  CAT_ORDER=[..._catDraft];
+  // ensure 'Other' always exists as fallback
+  if(!CAT_ORDER.includes('Other')) CAT_ORDER.push('Other');
+  persist();
+  renderCatPreview();
+  populateCategorySelect();
+  renderPayees();
+  closeCatModal();
+}
+
+function renderCatPreview(){
+  const el=document.getElementById('cat-list-preview');
+  if(!el) return;
+  el.innerHTML=CAT_ORDER.map(c=>`<span class="cat-tag">${esc(c)}</span>`).join('');
+}
+
+function populateCategorySelect(selectedVal){
+  const sel=document.getElementById('f-category');
+  if(!sel) return;
+  const cur=selectedVal||sel.value;
+  sel.innerHTML=CAT_ORDER.map(c=>`<option${c===cur?' selected':''}>${esc(c)}</option>`).join('');
+  sel.innerHTML+=`<option value="__new__" style="color:var(--green);font-weight:600">＋ New Category…</option>`;
+}
+
+function onCategorySelectChange(sel){
+  if(sel.value==='__new__'){
+    sel.value=CAT_ORDER[0]; // reset select to valid value
+    const row=document.getElementById('new-cat-row');
+    if(row){ row.style.display='block'; document.getElementById('new-cat-input').focus(); }
+  }
+}
+
+function confirmNewCatInline(){
+  const inp=document.getElementById('new-cat-input');
+  const val=inp.value.trim();
+  if(!val) return;
+  if(!CAT_ORDER.includes(val)){
+    CAT_ORDER.splice(CAT_ORDER.length-1, 0, val); // insert before "Other"
+    persist();
+    renderCatPreview();
+  }
+  populateCategorySelect(val);
+  document.getElementById('f-category').value=val;
+  inp.value='';
+  document.getElementById('new-cat-row').style.display='none';
+}
+
+function cancelNewCatInline(){
+  document.getElementById('new-cat-input').value='';
+  document.getElementById('new-cat-row').style.display='none';
+}
+
+function openCatModalForSection(cat){
+  openCatModal();
+}
+
+function scrollToSection(id, el){
+  const target = document.getElementById(id);
+  if(!target) return;
+  document.querySelectorAll('.settings-subnav-item').forEach(a=>a.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const navH = document.querySelector('nav').offsetHeight || 56;
+  const targetTop = target.getBoundingClientRect().top + window.pageYOffset - navH - 12;
+  window.scrollTo({top: targetTop, behavior: 'smooth'});
+}
+
+function onSettingsScroll(){
+  if(!document.getElementById('page-settings').classList.contains('active')) return;
+  const sections = ['section-data','section-password','section-payees','section-categories'];
+  const offset = 80;
+  let current = 0;
+  sections.forEach((id, i)=>{
+    const el = document.getElementById(id);
+    if(el && el.getBoundingClientRect().top <= offset) current = i;
+  });
+  document.querySelectorAll('.settings-subnav-item').forEach((a,i)=>{
+    a.classList.toggle('active', i === current);
+  });
+}
+window.addEventListener('scroll', onSettingsScroll);
+
+
 document.getElementById('wizard-overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeWizard(); });
 document.getElementById('modal-overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeModal(); });
 document.getElementById('import-overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeImport(); });
@@ -2434,5 +2637,27 @@ initStorage().then(()=>{
     </div>
   </div>
 </div>
+
+<!-- CATEGORY MANAGER MODAL -->
+<div class="cat-modal-overlay" id="cat-modal-overlay" onclick="if(event.target===this)closeCatModal()">
+  <div class="cat-modal-panel">
+    <div class="cat-modal-head">
+      <div style="font-size:15px;font-weight:700;color:var(--ink)">Edit Categories</div>
+      <button class="btn-wclose" onclick="closeCatModal()" style="color:var(--ink-faint);font-size:20px;background:none;border:none;cursor:pointer;">×</button>
+    </div>
+    <div class="cat-modal-body">
+      <div id="cat-items-list"></div>
+      <div class="cat-add-row">
+        <input type="text" id="cat-new-input" placeholder="New category name…" maxlength="40" onkeydown="if(event.key==='Enter')addCategory()">
+        <button class="btn-primary" onclick="addCategory()" style="font-size:12px;padding:8px 14px;white-space:nowrap">+ Add</button>
+      </div>
+    </div>
+    <div class="cat-modal-foot">
+      <button class="btn-secondary" onclick="resetCategories()" style="font-size:11px">Reset to defaults</button>
+      <button class="btn-primary" onclick="saveCategoriesAndClose()" style="font-size:13px;padding:9px 20px">Save</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
