@@ -461,23 +461,143 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 .col-tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--ink);color:#f0ece4;font-size:11px;font-weight:400;line-height:1.5;padding:8px 12px;border-radius:6px;width:220px;text-align:left;white-space:normal;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;letter-spacing:0;text-transform:none;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:var(--shadow-md);}
 .col-tip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:var(--ink);}
 .col-tip-wrap:hover .col-tip{opacity:1;}
+
+/* ─── MOBILE RESPONSIVE ─────────────────────────────── */
+@media(max-width:640px){
+
+  /* NAV */
+  nav{padding:0 14px;height:52px;}
+  .nav-brand{font-size:15px;}
+  .nav-tabs{gap:0;}
+  .nav-tab{padding:6px 10px;font-size:10px;letter-spacing:.04em;}
+  .summary-pill{padding:3px 8px;}
+  .summary-pill .val{font-size:11px;}
+  .summary-pill .lbl{font-size:8px;}
+  .btn-pay{padding:6px 10px;font-size:10px;}
+
+  /* MAIN CONTENT */
+  .content{padding:16px 12px 60px;}
+
+  /* YEARLY BANNER */
+  .yearly-banner{flex-direction:column;align-items:flex-start;gap:12px;padding:14px 16px;}
+  .yb-stats{margin-left:0;width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;}
+  .yb-stat{padding:0 10px;text-align:center;}
+  .yb-stat:first-child{padding-left:0;text-align:left;}
+  .yb-link{margin-left:0;width:100%;text-align:center;}
+
+  /* TOP BAR */
+  .top-bar{flex-wrap:wrap;gap:8px;}
+  #btn-add-payee-top{font-size:11px;padding:7px 12px;}
+
+  /* BILL CARDS */
+  .bill-card{grid-template-columns:22px 26px 1fr 28px;gap:8px;padding:10px 12px;}
+  .bill-amount{display:none;}
+  .autopay-tag{display:none;}
+
+  /* EMPTY STATE */
+  .empty-state{padding:40px 20px;}
+
+  /* SETTINGS */
+  .settings-grid{grid-template-columns:1fr;}
+  .data-mgmt-head{flex-direction:column;}
+  .dm-actions{flex-wrap:wrap;}
+
+  /* REPORTS */
+  .reports-controls{gap:8px;}
+  .report-section{overflow-x:auto;}
+  .r-table{min-width:500px;}
+
+  /* SESSION CARDS */
+  .session-head{flex-wrap:wrap;gap:6px;}
+  .session-badge{font-size:13px;}
+  .session-meta{width:100%;font-size:10px;}
+
+  /* WIZARD */
+  .wizard-overlay{padding:0;align-items:flex-end;}
+  .wizard-panel{border-radius:16px 16px 0 0;max-height:95vh;display:flex;flex-direction:column;}
+  .wizard-head{padding:12px 16px;}
+  .step-bar{padding:10px 16px;}
+  .step-lbl{font-size:10px;}
+  .wiz-body{padding:20px 16px;flex:1;overflow-y:auto;}
+  .wiz-foot{padding:12px 16px;}
+
+  /* WIZARD STEP 1 */
+  .month-year-row{gap:8px;}
+  .big-select{font-size:15px;padding:9px 12px;}
+
+  /* WIZARD STEP 2 - canvas input */
+  .amt-canvas-prefix{font-size:28px!important;}
+  .amt-canvas-input{font-size:56px!important;}
+
+  /* WIZARD STEP 3 - pay grid */
+  .s3-header{flex-direction:column;align-items:flex-start;gap:10px;}
+  .balance-display{gap:6px;flex-wrap:wrap;}
+  .bal-box{padding:5px 8px;}
+  .bal-div-sep{display:none;}
+  .pay-table-wrap{max-height:none;overflow-x:auto;}
+  .pay-table{min-width:580px;}
+
+  /* STEP 3 TOTALS FOOTER */
+  .tfoot-pay td{padding:8px 8px;}
+
+  /* LOCK SCREEN */
+  .lock-box{padding:28px 20px;}
+}
+
+@media(max-width:400px){
+  .nav-tab{padding:5px 7px;font-size:9px;}
+  .summary-pill{display:none;}
+  .amt-canvas-input{font-size:44px!important;}
+}
+
+/* HAMBURGER & MOBILE MENU */
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;transition:background .14s;}
+.nav-hamburger:hover{background:rgba(255,255,255,.1);}
+.nav-hamburger span{display:block;width:20px;height:2px;background:rgba(220,212,200,.8);border-radius:2px;transition:all .25s;}
+.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.nav-hamburger.open span:nth-child(2){opacity:0;}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+.nav-mobile-menu{display:none;position:fixed;top:52px;left:0;right:0;background:#3a6b50;z-index:49;flex-direction:column;padding:8px 12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.2);border-bottom:1px solid rgba(255,255,255,.1);}
+.nav-mobile-menu.open{display:flex;}
+.nav-mobile-tab{background:none;border:none;color:rgba(220,212,200,.75);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;padding:12px 10px;text-align:left;cursor:pointer;border-radius:6px;transition:all .14s;}
+.nav-mobile-tab:hover{color:#ddd8d0;background:rgba(255,255,255,.08);}
+.nav-mobile-divider{height:1px;background:rgba(255,255,255,.1);margin:6px 0;}
+.nav-mobile-pay{background:#dceee4;color:#1e2620;border:none;border-radius:6px;padding:11px 14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;text-align:center;margin-top:2px;}
+
+@media(max-width:640px){
+  .nav-tabs{display:none;}
+  .nav-hamburger{display:flex;}
+  .summary-pill{display:none;}
+  .btn-pay{display:none;}
+}
 </style>
 </head>
 <body>
 
 <nav>
   <div class="nav-brand">Bills <em>Worksheet</em></div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('payees',this)">Payees</button>
-    <button class="nav-tab" onclick="showPage('settings',this)">Settings</button>
-    <button class="nav-tab" onclick="showPage('reports',this)">Reports</button>
+  <div class="nav-tabs" id="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('payees',this);closeNavMenu()">Payees</button>
+    <button class="nav-tab" onclick="showPage('settings',this);closeNavMenu()">Settings</button>
+    <button class="nav-tab" onclick="showPage('reports',this);closeNavMenu()">Reports</button>
   </div>
   <div class="nav-right">
     <div class="summary-pill"><span class="lbl">Monthly</span><span class="val" id="nav-total">$0.00</span></div>
     <div class="summary-pill"><span class="lbl">Paid</span><span class="val" id="nav-paid">0/0</span></div>
     <button class="btn-pay" onclick="openWizard()">⚡ Pay Bills</button>
+    <button class="nav-hamburger" id="nav-hamburger" onclick="toggleNavMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+<div class="nav-mobile-menu" id="nav-mobile-menu">
+  <button class="nav-mobile-tab" onclick="showPage('payees',document.querySelector('.nav-tab'));closeNavMenu()">Payees</button>
+  <button class="nav-mobile-tab" onclick="showPage('settings',document.querySelectorAll('.nav-tab')[1]);closeNavMenu()">Settings</button>
+  <button class="nav-mobile-tab" onclick="showPage('reports',document.querySelectorAll('.nav-tab')[2]);closeNavMenu()">Reports</button>
+  <div class="nav-mobile-divider"></div>
+  <button class="nav-mobile-pay" onclick="openWizard();closeNavMenu()">⚡ Pay Bills</button>
+</div>
 
 <!-- IMPORT OVERLAY -->
 <div class="import-overlay" id="import-overlay">
@@ -1056,8 +1176,14 @@ function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 function showPage(name,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-mobile-tab').forEach(t=>t.style.color='');
   document.getElementById('page-'+name).classList.add('active');
   if(el) el.classList.add('active');
+  // highlight matching mobile tab
+  const mTabs=document.querySelectorAll('.nav-mobile-tab');
+  const pages=['payees','settings','reports'];
+  const idx=pages.indexOf(name);
+  if(idx>=0&&mTabs[idx]) mTabs[idx].style.color='#ddd8d0';
   if(name==='settings') renderSettings();
   if(name==='reports')  renderReports();
   if(name==='payees')   renderPayees();
@@ -1965,6 +2091,21 @@ function ptRowDelete(btn){
   tr.style.opacity='0';
   setTimeout(()=>{ tr.remove(); updateTotals(); },200);
 }
+
+
+function toggleNavMenu(){
+  const menu=document.getElementById('nav-mobile-menu');
+  const btn=document.getElementById('nav-hamburger');
+  const open=menu.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+function closeNavMenu(){
+  document.getElementById('nav-mobile-menu').classList.remove('open');
+  document.getElementById('nav-hamburger').classList.remove('open');
+}
+document.addEventListener('mousedown', e=>{
+  if(!e.target.closest('nav')&&!e.target.closest('.nav-mobile-menu')) closeNavMenu();
+});
 
 /* ─── EVENTS ─────────────────────────────── */
 document.getElementById('wizard-overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeWizard(); });
