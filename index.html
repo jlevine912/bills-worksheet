@@ -591,7 +591,11 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 .cat-modal-head{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;}
 .cat-modal-body{padding:16px 20px;max-height:340px;overflow-y:auto;}
 .cat-modal-foot{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;}
-.cat-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;border:1px solid var(--border-light);margin-bottom:7px;background:white;}
+.cat-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;border:1px solid var(--border-light);margin-bottom:7px;background:white;transition:box-shadow .15s,transform .15s;}
+.cat-item.dragging{opacity:.5;box-shadow:0 4px 16px rgba(0,0,0,.15);transform:scale(1.02);}
+.cat-item.drag-over{border-color:var(--green);background:var(--green-pale);}
+.cat-drag-handle{cursor:grab;color:var(--ink-faint);font-size:14px;line-height:1;padding:0 2px;user-select:none;flex-shrink:0;}
+.cat-drag-handle:active{cursor:grabbing;}
 .cat-item-name{flex:1;font-size:13px;font-weight:500;color:var(--ink);}
 .cat-item-default{font-size:10px;color:var(--ink-faint);font-style:italic;}
 .cat-item-del{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:16px;padding:0 4px;border-radius:4px;transition:color .14s;}
@@ -2205,13 +2209,34 @@ function renderCatItems(){
   list.innerHTML=_catDraft.map((cat,i)=>{
     const isDefault=DEFAULT_CATS.includes(cat);
     const inUse=bills.some(b=>b.category===cat);
-    return `<div class="cat-item">
+    return `<div class="cat-item" draggable="true" data-index="${i}"
+      ondragstart="catDragStart(event,${i})"
+      ondragover="catDragOver(event,${i})"
+      ondragleave="catDragLeave(event)"
+      ondrop="catDrop(event,${i})"
+      ondragend="catDragEnd(event)">
+      <span class="cat-drag-handle" title="Drag to reorder">⠿</span>
       <span class="cat-item-name">${esc(cat)}</span>
       ${isDefault?'<span class="cat-item-default">default</span>':''}
       <button class="cat-item-del" onclick="removeCat(${i})" title="${inUse?'Category in use — payees will move to Other':'Remove'}" ${inUse?'style="opacity:.35;cursor:not-allowed"':''} ${inUse?'disabled':''}>×</button>
     </div>`;
   }).join('');
 }
+
+let _dragFromIdx=null;
+function catDragStart(e,i){ _dragFromIdx=i; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
+function catDragOver(e,i){ e.preventDefault(); e.dataTransfer.dropEffect='move'; e.currentTarget.classList.add('drag-over'); }
+function catDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
+function catDrop(e,i){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(_dragFromIdx===null||_dragFromIdx===i) return;
+  const moved=_catDraft.splice(_dragFromIdx,1)[0];
+  _catDraft.splice(i,0,moved);
+  _dragFromIdx=null;
+  renderCatItems();
+}
+function catDragEnd(e){ e.currentTarget.classList.remove('dragging'); _dragFromIdx=null; }
 
 function removeCat(i){
   _catDraft.splice(i,1);
