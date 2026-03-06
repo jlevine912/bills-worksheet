@@ -597,7 +597,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   <div class="nav-right">
     <div class="summary-pill"><span class="lbl">Monthly</span><span class="val" id="nav-total">$0.00</span></div>
     <div class="summary-pill"><span class="lbl">Paid</span><span class="val" id="nav-paid">0/0</span></div>
-    <button class="btn-pay" onclick="openWizard()">⚡ Pay Bills</button>
+    <button class="btn-pay" onclick="openWizard()">⚡ Track Bills</button>
     <button class="nav-hamburger" id="nav-hamburger" onclick="toggleNavMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -608,7 +608,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   <button class="nav-mobile-tab" onclick="showPage('settings',document.querySelectorAll('.nav-tab')[1]);closeNavMenu()">Settings</button>
   <button class="nav-mobile-tab" onclick="showPage('reports',document.querySelectorAll('.nav-tab')[2]);closeNavMenu()">Reports</button>
   <div class="nav-mobile-divider"></div>
-  <button class="nav-mobile-pay" onclick="openWizard();closeNavMenu()">⚡ Pay Bills</button>
+  <button class="nav-mobile-pay" onclick="openWizard();closeNavMenu()">⚡ Track Bills</button>
 </div>
 
 <!-- IMPORT OVERLAY -->
@@ -695,7 +695,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
       </div>
     </div>
 
-    <div class="settings-hint">💡 Toggle payees on/off to control which appear in the <strong>Pay Bills</strong> workflow.</div>
+    <div class="settings-hint">💡 Toggle payees on/off to control which appear in the <strong>Track Bills</strong> workflow.</div>
     <div id="settings-container" class="settings-grid"></div>
   </div>
 </div>
@@ -724,7 +724,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   <div class="wizard-panel">
     <div class="wizard-head">
       <button class="btn-wiz-back-top" id="btn-wiz-back" onclick="wizBack()" style="display:none">← Back</button>
-      <div class="wizard-title">Pay <em>Bills</em></div>
+      <div class="wizard-title">Track <em>Bills</em></div>
       <button class="btn-wclose" onclick="closeWizard()">×</button>
     </div>
     <div class="step-bar">
@@ -1321,7 +1321,7 @@ function renderReports(){
   const ys=sessions.filter(s=>s.year==year).sort((a,b)=>MONTHS.indexOf(a.month)-MONTHS.indexOf(b.month));
 
   if(!ys.length){
-    c.innerHTML=`<div class="no-sessions" style="padding:60px 20px">No sessions recorded for ${year}.<br><br>Complete a <strong>Pay Bills</strong> session to start building your history.</div>`;
+    c.innerHTML=`<div class="no-sessions" style="padding:60px 20px">No sessions recorded for ${year}.<br><br>Complete a <strong>Track Bills</strong> session to start building your history.</div>`;
     return;
   }
 
@@ -2352,7 +2352,7 @@ initStorage().then(()=>{
         <div class="ws-num">2</div>
         <div class="ws-text">
           <strong>Pay your bills each month</strong>
-          <p>Hit the <strong>⚡ Pay Bills</strong> button in the top right. Choose the month, enter your checking account balance, then go through each bill — adjust amounts as needed. Toggle the 💳 switch for anything you're putting on a credit card. This allows you to get points or miles for paying these bills, and still see a tally of the total amount of bills charged to a credit card, so you can make that extra payment amount to your card. <strong>Bills marked as Paid with Credit Card will not impact your Remaining Balance.</strong></p>
+          <p>Hit the <strong>⚡ Track Bills</strong> button in the top right. Choose the month, enter your checking account balance, then go through each bill — adjust amounts as needed. Toggle the 💳 switch for anything you're putting on a credit card. This allows you to get points or miles for paying these bills, and still see a tally of the total amount of bills charged to a credit card, so you can make that extra payment amount to your card. <strong>Bills marked as Paid with Credit Card will not impact your Remaining Balance.</strong></p>
         </div>
       </div>
       <div class="welcome-step">
