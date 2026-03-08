@@ -635,6 +635,32 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 .autopay-tag.off{background:var(--cream);color:var(--ink-faint);border:1px solid var(--border-light);border-radius:4px;padding:3px 7px;transition:all .15s;}
 .autopay-tag.on:hover{background:rgba(61,107,82,.2);}
 .autopay-tag.off:hover{background:var(--border-light);color:var(--ink-light);}
+
+
+/* ─── HOME PAGE ──────────────────────── */
+.home-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:40px 20px;text-align:center;}
+.home-month-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;}
+.home-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:36px;font-weight:800;color:#0A2463;margin-bottom:6px;line-height:1.1;}
+.home-title em{font-style:italic;color:#F72585;}
+.home-subtitle{font-size:14px;color:var(--ink-faint);margin-bottom:32px;}
+.home-cta-group{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.home-btn-primary{background:#F72585;color:white;border:none;border-radius:8px;padding:14px 36px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.03em;transition:background .15s,transform .1s,box-shadow .15s;box-shadow:0 4px 16px rgba(247,37,133,.3);}
+.home-btn-primary:hover{background:#d41870;transform:translateY(-1px);box-shadow:0 6px 20px rgba(247,37,133,.38);}
+.home-btn-secondary{background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--ink-faint);cursor:pointer;padding:4px 8px;text-decoration:underline;text-underline-offset:3px;transition:color .14s;}
+.home-btn-secondary:hover{color:#0A2463;}
+.home-session-card{background:white;border:1px solid var(--border-light);border-radius:12px;padding:24px 32px;width:100%;max-width:460px;text-align:left;margin-bottom:28px;}
+.home-session-month{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:4px;}
+.home-session-title{font-size:22px;font-weight:800;color:#0A2463;margin-bottom:16px;}
+.home-session-stats{display:flex;gap:24px;margin-bottom:20px;}
+.home-session-stat .sl{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:2px;}
+.home-session-stat .sv{font-family:'Fira Code',monospace;font-size:18px;font-weight:600;color:#0A2463;}
+.home-session-actions{display:flex;gap:10px;}
+.home-divider{width:1px;height:40px;background:var(--border-light);margin:0 4px;}
+@media(max-width:640px){
+  .home-title{font-size:28px;}
+  .home-session-card{padding:18px 20px;}
+  .home-session-stats{gap:16px;}
+}
 </style>
 </head>
 <body>
@@ -642,7 +668,8 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 <nav>
   <div class="nav-brand">Bills <em>Worksheet</em></div>
   <div class="nav-tabs" id="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('payees',this);closeNavMenu()">Payees</button>
+    <button class="nav-tab active" onclick="showPage('home',this);closeNavMenu()">Home</button>
+    <button class="nav-tab" onclick="showPage('payees',this);closeNavMenu()">Payees</button>
     <button class="nav-tab" onclick="showPage('settings',this);closeNavMenu()">Settings</button>
     <button class="nav-tab" onclick="showPage('reports',this);closeNavMenu()">Reports</button>
   </div>
@@ -656,9 +683,10 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   </div>
 </nav>
 <div class="nav-mobile-menu" id="nav-mobile-menu">
-  <button class="nav-mobile-tab" onclick="showPage('payees',document.querySelector('.nav-tab'));closeNavMenu()">Payees</button>
-  <button class="nav-mobile-tab" onclick="showPage('settings',document.querySelectorAll('.nav-tab')[1]);closeNavMenu()">Settings</button>
-  <button class="nav-mobile-tab" onclick="showPage('reports',document.querySelectorAll('.nav-tab')[2]);closeNavMenu()">Reports</button>
+  <button class="nav-mobile-tab" onclick="showPage('home',document.querySelector('.nav-tab'));closeNavMenu()">Home</button>
+  <button class="nav-mobile-tab" onclick="showPage('payees',document.querySelectorAll('.nav-tab')[1]);closeNavMenu()">Payees</button>
+  <button class="nav-mobile-tab" onclick="showPage('settings',document.querySelectorAll('.nav-tab')[2]);closeNavMenu()">Settings</button>
+  <button class="nav-mobile-tab" onclick="showPage('reports',document.querySelectorAll('.nav-tab')[3]);closeNavMenu()">Reports</button>
   <div class="nav-mobile-divider"></div>
   <button class="nav-mobile-pay" onclick="openWizard();closeNavMenu()">⚡ Track Bills</button>
 </div>
@@ -683,7 +711,13 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 </div>
 
 <!-- PAYEES -->
-<div class="page active" id="page-payees">
+<div class="page active" id="page-home">
+  <div class="content">
+    <div class="home-content" id="home-content"></div>
+  </div>
+</div>
+
+<div class="page" id="page-payees">
   <div class="content">
     <div id="yearly-banner-wrap"></div>
     <div class="top-bar">
@@ -1180,7 +1214,7 @@ function setupImportDrop(){
 // ── Init storage ──────────────────────────────────────────
 async function initStorage(){
   lsLoad(); // load from localStorage immediately (fast)
-  renderPayees();
+  renderHome();
 
   // Try to reconnect previously linked file
   if(FS_SUPPORTED){
@@ -1195,8 +1229,7 @@ async function initStorage(){
           if(obj && obj.version){
             loadFromObj(obj);
             lsSave();
-            renderPayees();
-            renderYearlyBanner();
+            renderHome();
           }
         } else {
           // Permission needs re-requesting — show a banner prompt
@@ -1270,13 +1303,14 @@ function showPage(name,el){
   if(el) el.classList.add('active');
   // highlight matching mobile tab
   const mTabs=document.querySelectorAll('.nav-mobile-tab');
-  const pages=['payees','settings','reports'];
+  const pages=['home','payees','settings','reports'];
   const idx=pages.indexOf(name);
   if(idx>=0&&mTabs[idx]) mTabs[idx].style.color='#ddd8d0';
   if(name==='settings') renderSettings();
   if(name==='reports')  renderReports();
   if(name==='payees')   renderPayees();
-  if(name==='settings')  updatePwUI();
+  if(name==='home')     renderHome();
+  if(name==='settings') updatePwUI();
 }
 function goReports(){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1285,6 +1319,7 @@ function goReports(){
   document.querySelectorAll('.nav-tab')[2].classList.add('active');
   renderReports();
 }
+
 
 /* ─── YEARLY BANNER ──────────────────────── */
 function renderYearlyBanner(){
@@ -1303,6 +1338,67 @@ function renderYearlyBanner(){
     </div>
     <button class="yb-link" onclick="goReports()">View Reports →</button>
   </div>`;
+}
+
+/* ─── HOME ───────────────────────────────── */
+function renderHome(){
+  const now=new Date();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const curMonth=now.getMonth();
+  const curYear=now.getFullYear();
+  const curMonthName=MONTHS[curMonth];
+
+  // Find current month session
+  const curSession=sessions.find(s=>s.month===curMonth&&s.year===curYear);
+
+  // Find last month session
+  const lastMonthDate=new Date(curYear,curMonth-1,1);
+  const lastMonth=lastMonthDate.getMonth();
+  const lastYear=lastMonthDate.getFullYear();
+  const lastMonthName=MONTHS[lastMonth];
+  const lastSession=sessions.find(s=>s.month===lastMonth&&s.year===lastYear);
+
+  const el=document.getElementById('home-content');
+
+  if(curSession){
+    // Show current month summary card + option to edit
+    const total=curSession.payments.reduce((s,p)=>s+(p.amount||0),0);
+    const paid=curSession.payments.filter(p=>p.amount>0).length;
+    const paidDate=curSession.paidAt?new Date(curSession.paidAt):null;
+    const paidStr=paidDate?paidDate.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
+    el.innerHTML=`
+      <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:16px;">Current Period</div>
+      <div class="home-session-card">
+        <div class="home-session-month">${paidStr?'Tracked '+paidStr:curYear}</div>
+        <div class="home-session-title">${curMonthName} ${curYear}</div>
+        <div class="home-session-stats">
+          <div class="home-session-stat"><span class="sl">Total Paid</span><span class="sv">${fmt(total)}</span></div>
+          <div class="home-divider"></div>
+          <div class="home-session-stat"><span class="sl">Bills Paid</span><span class="sv">${paid}/${bills.length}</span></div>
+        </div>
+        <div class="home-session-actions">
+          <button class="home-btn-primary" style="padding:10px 22px;font-size:13px" onclick="openWizardCurrentMonth()">✎ Edit Session</button>
+        </div>
+      </div>
+      ${lastSession?`<button class="home-btn-secondary" onclick="viewLastMonth()">← View ${lastMonthName} ${lastYear}</button>`:''}
+    `;
+  } else {
+    // No session yet — prompt to start
+    el.innerHTML=`
+      <div class="home-month-label">${curYear}</div>
+      <div class="home-title">${curMonthName} <em>Bills</em></div>
+      <div class="home-subtitle">Ready to track your ${curMonthName} payments?</div>
+      <div class="home-cta-group">
+        <button class="home-btn-primary" onclick="openWizardCurrentMonth()">⚡ Start Tracking ${curMonthName}</button>
+        ${lastSession?`<button class="home-btn-secondary" onclick="viewLastMonth()">← View ${lastMonthName} ${lastYear}</button>`:''}
+      </div>
+    `;
+  }
+}
+
+function viewLastMonth(){
+  // Open reports page filtered to last month — for now just go to reports
+  goReports();
 }
 
 /* ─── PAYEES ─────────────────────────────── */
@@ -1559,7 +1655,7 @@ function deleteBill(){
   if(!editingId||!confirm('Remove this payee?'))return;
   bills=bills.filter(b=>b.id!==editingId);
   delete settings[editingId];
-  persist(); closeModal(); renderPayees();
+  persist(); closeModal(); renderPayees(); if(document.getElementById("page-home").classList.contains("active")) renderHome();
 }
 
 /* ─── WIZARD ─────────────────────────────── */
@@ -1608,6 +1704,7 @@ function formatStartInput(inp){
 }
 
 function openWizard(){
+  // Standard open — show step 1 (period selection)
   const now=new Date();
   const next=getNextPeriod();
   const targetMonth=next?next.month:MONTHS[now.getMonth()];
@@ -1626,6 +1723,34 @@ function openWizard(){
   wizStep=1; setWizStep(1);
   document.getElementById('wizard-overlay').classList.add('open');
   setTimeout(onPeriodChange,50);
+}
+
+function openWizardCurrentMonth(){
+  // Called from home screen — period already known, skip step 1
+  const now=new Date();
+  const curMonth=MONTHS[now.getMonth()];
+  const curYear=now.getFullYear();
+  const ySel=document.getElementById('sel-year');
+  ySel.innerHTML='';
+  for(let y=curYear-1;y<=curYear+2;y++){
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y;
+    if(y===curYear)o.selected=true;
+    ySel.appendChild(o);
+  }
+  document.getElementById('sel-month').value=curMonth;
+  _editingSessionId=null;
+  // Pre-fill if session exists for current month
+  const existing=sessions.find(s=>s.month===now.getMonth()&&s.year===curYear);
+  if(existing){
+    _editingSessionId=existing.id;
+    const el=document.getElementById('wiz-start');
+    if(el&&existing.startAmt>0) el.innerText=existing.startAmt.toLocaleString('en-US',{maximumFractionDigits:2});
+  } else {
+    const ws=document.getElementById('wiz-start'); if(ws) ws.innerText='';
+  }
+  document.getElementById('wizard-overlay').classList.add('open');
+  setWizStep(2);
 }
 function closeWizard(){ document.getElementById('wizard-overlay').classList.remove('open'); }
 
@@ -1852,7 +1977,7 @@ function wizDone(){
   }
   _editingSessionId=null;
   bills.filter(b=>isActive(b.id)).forEach(b=>b.paid=true);
-  persist(); renderPayees(); closeWizard(); renderYearlyBanner();
+  persist(); renderPayees(); closeWizard(); renderHome();
 }
 
 
