@@ -661,6 +661,36 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
   .home-session-card{padding:18px 20px;}
   .home-session-stats{gap:16px;}
 }
+
+/* ─── PERIOD SWITCHER (Step 2) ───────── */
+.step2-period-row{display:flex;flex-direction:column;align-items:center;margin-bottom:28px;}
+.step2-period-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0A2463;margin-bottom:4px;}
+.step2-change-btn{background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:2px 6px;display:inline-flex;align-items:center;gap:4px;transition:color .14s;border-radius:4px;}
+.step2-change-btn:hover{color:#F72585;}
+.step2-period-dropdown{display:none;position:absolute;z-index:200;background:white;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 18px rgba(10,36,99,.12);overflow:hidden;min-width:180px;margin-top:4px;}
+.step2-period-dropdown.open{display:block;}
+.step2-dd-item{padding:9px 16px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#0A2463;cursor:pointer;transition:background .12s;display:flex;justify-content:space-between;align-items:center;}
+.step2-dd-item:hover{background:#fde8f3;color:#F72585;}
+.step2-dd-item.current{font-weight:700;color:#F72585;}
+.step2-dd-sep{height:1px;background:var(--border-light);margin:4px 0;}
+.step2-dd-new{padding:9px 16px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink-faint);cursor:pointer;transition:background .12s;}
+.step2-dd-new:hover{background:#fde8f3;color:#F72585;}
+.step2-period-wrap{position:relative;display:inline-flex;flex-direction:column;align-items:center;}
+.home-month-picker-wrap{position:relative;display:inline-flex;flex-direction:column;align-items:center;}
+
+
+/* ─── URL TEST BUTTON ────────────────── */
+.url-field-wrap{display:flex;gap:8px;align-items:center;}
+.url-field-wrap input{flex:1;min-width:0;}
+.btn-url-test{flex-shrink:0;background:none;border:1px solid var(--border);border-radius:6px;padding:7px 11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:600;color:var(--ink-light);cursor:pointer;transition:all .14s;white-space:nowrap;}
+.btn-url-test:hover{border-color:#0A2463;color:#0A2463;}
+.btn-url-test.testing{color:var(--ink-faint);pointer-events:none;}
+.btn-url-test.ok{border-color:#2e7d52;color:#2e7d52;background:rgba(46,125,82,.06);}
+.btn-url-test.fail{border-color:#c0392b;color:#c0392b;background:rgba(192,57,43,.06);}
+.url-test-msg{font-size:11px;margin-top:5px;min-height:16px;}
+.url-test-msg.ok{color:#2e7d52;}
+.url-test-msg.fail{color:#c0392b;}
+
 </style>
 </head>
 <body>
@@ -946,7 +976,14 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
         </div>
         <div><label class="fl">Amount ($)</label><input type="number" id="f-amount" placeholder="0.00" min="0" step="0.01"></div>
       </div>
-      <div class="field"><label class="fl">Website / Payment URL</label><input type="url" id="f-website" placeholder="https://..."></div>
+      <div class="field">
+        <label class="fl">Website / Payment URL</label>
+        <div class="url-field-wrap">
+          <input type="url" id="f-website" placeholder="https://..." oninput="resetUrlTest()">
+          <button class="btn-url-test" id="btn-url-test" onclick="testUrl()" type="button">Test →</button>
+        </div>
+        <div class="url-test-msg" id="url-test-msg"></div>
+      </div>
       <div class="field"><label class="fl">Notes</label><textarea id="f-notes" placeholder="Account number, login info, due dates…"></textarea></div>
       <div class="tog-row">
         <div><div class="tr-lbl">Auto-Pay Enrolled</div><div class="tr-sub">Bill paid automatically</div></div>
@@ -1390,15 +1427,63 @@ function renderHome(){
       <div class="home-subtitle">Ready to track your ${curMonthName} payments?</div>
       <div class="home-cta-group">
         <button class="home-btn-primary" onclick="openWizardCurrentMonth()">⚡ Start Tracking ${curMonthName}</button>
-        ${lastSession?`<button class="home-btn-secondary" onclick="viewLastMonth()">← View ${lastMonthName} ${lastYear}</button>`:''}
+        <div class="home-month-picker-wrap">
+          <button class="home-btn-secondary" onclick="toggleHomePeriodDropdown(event)">▾ Track a different month</button>
+          <div class="step2-period-dropdown" id="home-period-dropdown"></div>
+        </div>
       </div>
     `;
   }
 }
 
-function viewLastMonth(){
-  // Open reports page filtered to last month — for now just go to reports
-  goReports();
+function toggleHomePeriodDropdown(e){
+  e.stopPropagation();
+  const dd=document.getElementById('home-period-dropdown');
+  if(!dd) return;
+  if(dd.classList.contains('open')){ dd.classList.remove('open'); return; }
+  const MONTHS_LIST=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now=new Date();
+  const curMonth=MONTHS_LIST[now.getMonth()];
+  const curYear=now.getFullYear();
+  // Build list: past sessions + current month if no session
+  let html='';
+  const sorted=[...sessions].sort((a,b)=>b.year-a.year||(MONTHS_LIST.indexOf(b.month)-MONTHS_LIST.indexOf(a.month)));
+  sorted.forEach(s=>{
+    html+=`<div class="step2-dd-item" onclick="openWizardForPeriod('${s.month}',${s.year})">${s.month} ${s.year}</div>`;
+  });
+  if(html) html+='<div class="step2-dd-sep"></div>';
+  html+=`<div class="step2-dd-new" onclick="openWizardForPeriod('${curMonth}',${curYear})">New: ${curMonth} ${curYear}</div>`;
+  dd.innerHTML=html;
+  dd.classList.add('open');
+  setTimeout(()=>document.addEventListener('click',()=>{ if(dd) dd.classList.remove('open'); },{once:true}),10);
+}
+
+function openWizardForPeriod(month, year){
+  const dd=document.getElementById('home-period-dropdown');
+  if(dd) dd.classList.remove('open');
+  const ySel=document.getElementById('sel-year');
+  ySel.innerHTML='';
+  const now=new Date();
+  for(let y=now.getFullYear()-2;y<=now.getFullYear()+1;y++){
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y;
+    if(y===parseInt(year))o.selected=true;
+    ySel.appendChild(o);
+  }
+  document.getElementById('sel-month').value=month;
+  _editingSessionId=null;
+  const existing=sessions.find(s=>s.month===month&&s.year==year);
+  if(existing){
+    _editingSessionId=existing.id;
+    const el=document.getElementById('wiz-start');
+    if(el&&existing.startAmt>0) el.innerText=existing.startAmt.toLocaleString('en-US',{maximumFractionDigits:2});
+    else if(el) el.innerText='';
+  } else {
+    const el=document.getElementById('wiz-start'); if(el) el.innerText='';
+  }
+  document.getElementById('wizard-overlay').classList.add('open');
+  setWizStep(2);
+  updateStep2PeriodLabel();
 }
 
 /* ─── PAYEES ─────────────────────────────── */
@@ -1609,6 +1694,7 @@ function openModal(id=null,fromWizard=false){
     document.getElementById('f-category').value=b.category;
     document.getElementById('f-amount').value=b.amount||'';
     document.getElementById('f-website').value=b.website||'';
+  resetUrlTest();
     document.getElementById('f-notes').value=b.notes||'';
     document.getElementById('f-autopay').checked=b.autopay||false;
     if(document.getElementById('f-logo')) document.getElementById('f-logo').value=b.logo||'';
@@ -1619,6 +1705,7 @@ function openModal(id=null,fromWizard=false){
     document.getElementById('f-category').value='Utilities';
     document.getElementById('f-amount').value='';
     document.getElementById('f-website').value='';
+  resetUrlTest();
     document.getElementById('f-notes').value='';
     document.getElementById('f-autopay').checked=false;
     if(document.getElementById('f-logo')) document.getElementById('f-logo').value='';
@@ -1629,6 +1716,38 @@ function openModal(id=null,fromWizard=false){
   setTimeout(()=>document.getElementById('f-name').focus(),80);
 }
 function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); editingId=null; acHide(); acLastQuery=''; }
+
+
+/* ─── URL TESTER ──────────────────────── */
+function resetUrlTest(){
+  const btn=document.getElementById('btn-url-test');
+  const msg=document.getElementById('url-test-msg');
+  if(btn){ btn.className='btn-url-test'; btn.textContent='Test →'; }
+  if(msg){ msg.className='url-test-msg'; msg.textContent=''; }
+}
+
+function testUrl(){
+  const input=document.getElementById('f-website');
+  const btn=document.getElementById('btn-url-test');
+  const msg=document.getElementById('url-test-msg');
+  let url=input.value.trim();
+  if(!url){ msg.className='url-test-msg fail'; msg.textContent='Please enter a URL first.'; return; }
+  if(!/^https?:\/\//i.test(url)){ url='https://'+url; input.value=url; }
+  try{ new URL(url); } catch(e){
+    btn.className='btn-url-test fail'; btn.textContent='✕ Invalid';
+    msg.className='url-test-msg fail'; msg.textContent="That doesn't look like a valid URL.";
+    return;
+  }
+  window.open(url,'_blank','noopener');
+  btn.className='btn-url-test ok'; btn.textContent='✓ Opened';
+  msg.innerHTML='Didn\'t load? <a href="#" onclick="clearUrl();return false;" style="color:#c0392b;font-weight:600;text-decoration:underline;">Clear field</a>';
+}
+
+function clearUrl(){
+  const input=document.getElementById('f-website');
+  if(input) input.value='';
+  resetUrlTest();
+}
 
 function saveBill(){
   const name=document.getElementById('f-name').value.trim();
@@ -1766,6 +1885,7 @@ function setWizStep(n){
   document.getElementById('btn-wiz-next').style.display=n<3?'inline-flex':'none';
   document.getElementById('btn-wiz-done').style.display=n===3?'inline-flex':'none';
   if(n===3) buildPayGrid();
+  if(n===2) updateStep2PeriodLabel();
 }
 let _editingSessionId=null;
 
@@ -1804,6 +1924,75 @@ function onPeriodChange(){
   } else {
     el.innerHTML=`<span class="period-status-new">New session</span>`;
   }
+}
+
+
+/* ─── PERIOD SWITCHER ─────────────────── */
+function updateStep2PeriodLabel(){
+  const month=document.getElementById('sel-month').value;
+  const year=document.getElementById('sel-year').value;
+  const lbl=document.getElementById('step2-period-label');
+  if(lbl) lbl.textContent=month+' '+year;
+}
+
+function togglePeriodDropdown(e){
+  e.stopPropagation();
+  const dd=document.getElementById('step2-period-dropdown');
+  if(dd.classList.contains('open')){ dd.classList.remove('open'); return; }
+  // Build dropdown options
+  const curMonth=document.getElementById('sel-month').value;
+  const curYear=document.getElementById('sel-year').value;
+  const MONTHS_LIST=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now=new Date();
+  let html='';
+  // Past sessions
+  const sorted=[...sessions].sort((a,b)=>b.year-a.year||(MONTHS_LIST.indexOf(b.month)-MONTHS_LIST.indexOf(a.month)));
+  if(sorted.length){
+    sorted.forEach(s=>{
+      const isCur=s.month===curMonth&&String(s.year)===String(curYear);
+      html+=`<div class="step2-dd-item${isCur?' current':''}" onclick="selectPeriod('${s.month}',${s.year})">${s.month} ${s.year}${isCur?' ✓':''}</div>`;
+    });
+    html+='<div class="step2-dd-sep"></div>';
+  }
+  // New month option
+  const nextM=now.getMonth()<11?now.getMonth()+1:0;
+  const nextY=now.getMonth()<11?now.getFullYear():now.getFullYear()+1;
+  html+=`<div class="step2-dd-new" onclick="selectPeriod('${MONTHS_LIST[now.getMonth()]}',${now.getFullYear()})">New: ${MONTHS_LIST[now.getMonth()]} ${now.getFullYear()}</div>`;
+  dd.innerHTML=html;
+  dd.classList.add('open');
+  // Close on outside click
+  setTimeout(()=>document.addEventListener('click',closePeriodDropdown,{once:true}),10);
+}
+
+function closePeriodDropdown(){
+  const dd=document.getElementById('step2-period-dropdown');
+  if(dd) dd.classList.remove('open');
+}
+
+function selectPeriod(month, year){
+  closePeriodDropdown();
+  const ySel=document.getElementById('sel-year');
+  // Ensure year option exists
+  let found=false;
+  for(let o of ySel.options){ if(parseInt(o.value)===parseInt(year)){ o.selected=true; found=true; break; } }
+  if(!found){
+    const o=document.createElement('option');
+    o.value=year; o.textContent=year; o.selected=true;
+    ySel.appendChild(o);
+  }
+  document.getElementById('sel-month').value=month;
+  // Check if editing existing session
+  const existing=sessions.find(s=>s.month===month&&s.year==year);
+  if(existing){
+    _editingSessionId=existing.id;
+    const el=document.getElementById('wiz-start');
+    if(el&&existing.startAmt>0) el.innerText=existing.startAmt.toLocaleString('en-US',{maximumFractionDigits:2});
+    else if(el) el.innerText='';
+  } else {
+    _editingSessionId=null;
+    const el=document.getElementById('wiz-start'); if(el) el.innerText='';
+  }
+  updateStep2PeriodLabel();
 }
 
 function wizNext(){
