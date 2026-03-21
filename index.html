@@ -1149,13 +1149,21 @@ async function supaSave(){
   if(!supaUser) return;
   setSyncing(true);
   try {
-    // Upsert bills
-    if(bills.length){
-      await supa.from('bills').upsert(bills.map((b,i)=>({
-        id:b.id, user_id:supaUser.id, name:b.name, category:b.category||'Other',
-        amount:b.amount||null, website:b.website||null, notes:b.notes||null,
-        autopay:!!b.autopay, paid:!!b.paid, sort_order:i
-      })));
+    // Sync bills: upsert current, delete any removed from DB
+    const billRows = bills.map((b,i)=>({
+      id:b.id, user_id:supaUser.id, name:b.name, category:b.category||'Other',
+      amount:b.amount||null, website:b.website||null, notes:b.notes||null,
+      autopay:!!b.autopay, paid:!!b.paid, sort_order:i
+    }));
+    if(billRows.length){
+      await supa.from('bills').upsert(billRows);
+    }
+    // Delete bills from DB that are no longer in local array
+    const localIds = bills.map(b=>b.id);
+    const {data:dbBills} = await supa.from('bills').select('id').eq('user_id', supaUser.id);
+    if(dbBills){
+      const toDelete = dbBills.map(r=>r.id).filter(id=>!localIds.includes(id));
+      if(toDelete.length) await supa.from('bills').delete().in('id', toDelete);
     }
     // Upsert sessions
     if(sessions.length){
@@ -1582,157 +1590,6 @@ function renderYearlyBanner(){
 function renderHome(){
   const now=new Date();
   
-// ── SUPABASE ──────────────────────────────────────────────
-const SUPA_URL = 'https://weljchhyczlsmszahsaj.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndlbGpjaGh5Y3psc21zemFoc2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTgxNjMsImV4cCI6MjA4OTYzNDE2M30.Zxjb07HxsAZNR0zaMnv8l-Q17OYgcDArElElMX_6sJY';
-const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
-let supaUser = null;
-let isSyncing = false;
-
-// ── AUTH UI ───────────────────────────────────────────────
-function switchAuthTab(tab){
-  document.getElementById('auth-tab-signin').className = 'auth-tab' + (tab==='signin'?' active':'');
-  document.getElementById('auth-tab-signup').className = 'auth-tab' + (tab==='signup'?' active':'');
-  document.getElementById('auth-btn').textContent = tab==='signin' ? 'Sign In' : 'Create Account';
-  document.getElementById('auth-msg').textContent = '';
-  document.getElementById('auth-msg').className = 'auth-msg';
-  document.getElementById('auth-password').autocomplete = tab==='signup' ? 'new-password' : 'current-password';
-  window._authTab = tab;
-}
-window._authTab = 'signin';
-
-async function authSubmit(){
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const btn = document.getElementById('auth-btn');
-  const msg = document.getElementById('auth-msg');
-  if(!email || !password){ msg.className='auth-msg err'; msg.textContent='Please enter email and password.'; return; }
-  btn.disabled = true;
-  btn.textContent = 'Please wait…';
-  msg.textContent = '';
-  let error;
-  if(window._authTab === 'signup'){
-    ({error} = await supa.auth.signUp({email, password}));
-    if(!error){ msg.className='auth-msg ok'; msg.textContent='Check your email to confirm your account!'; btn.disabled=false; btn.textContent='Create Account'; return; }
-  } else {
-    ({error} = await supa.auth.signInWithPassword({email, password}));
-  }
-  btn.disabled = false;
-  btn.textContent = window._authTab === 'signin' ? 'Sign In' : 'Create Account';
-  if(error){ msg.className='auth-msg err'; msg.textContent=error.message; }
-}
-
-function showAuthOverlay(){ document.getElementById('auth-overlay').classList.remove('hidden'); }
-function hideAuthOverlay(){ document.getElementById('auth-overlay').classList.add('hidden'); }
-
-function updateNavUser(user){
-  const bar = document.getElementById('auth-user-bar');
-  const emailEl = document.getElementById('auth-user-email');
-  if(user){ bar.style.display='flex'; emailEl.textContent=user.email; }
-  else { bar.style.display='none'; }
-}
-
-async function signOut(){
-  await supa.auth.signOut();
-  supaUser = null;
-  bills=[]; sessions=[]; settings={}; CAT_ORDER=[...DEFAULT_CATS];
-  lsSave();
-  updateNavUser(null);
-  showAuthOverlay();
-}
-
-// ── SUPABASE SYNC ─────────────────────────────────────────
-function setSyncing(on){
-  isSyncing = on;
-  const dot = document.getElementById('auth-sync-dot');
-  if(dot) dot.className = 'auth-sync-dot' + (on ? ' syncing' : '');
-}
-
-async function supaLoad(){
-  if(!supaUser) return;
-  setSyncing(true);
-  try {
-    const [billsRes, sessRes, setRes] = await Promise.all([
-      supa.from('bills').select('*').order('sort_order'),
-      supa.from('sessions').select('*').order('year').order('month'),
-      supa.from('user_settings').select('*').eq('user_id', supaUser.id).single()
-    ]);
-    if(billsRes.data) bills = billsRes.data.map(r=>({
-      id:r.id, name:r.name, category:r.category, amount:r.amount,
-      website:r.website, notes:r.notes, autopay:r.autopay, paid:r.paid, sortOrder:r.sort_order
-    }));
-    if(sessRes.data) sessions = sessRes.data.map(r=>({
-      id:r.id, month:r.month, year:r.year, startAmt:r.start_amt,
-      payments:r.payments||[], paidAt:r.paid_at?new Date(r.paid_at).getTime():null,
-      savedAt:new Date(r.saved_at).getTime()
-    }));
-    if(setRes.data){
-      if(Array.isArray(setRes.data.categories)&&setRes.data.categories.length) CAT_ORDER=[...setRes.data.categories];
-    }
-    lsSave();
-    renderHome(); renderPayees();
-  } catch(e){ console.warn('Supabase load error:', e); }
-  setSyncing(false);
-}
-
-async function supaSave(){
-  if(!supaUser) return;
-  setSyncing(true);
-  try {
-    // Upsert bills
-    if(bills.length){
-      await supa.from('bills').upsert(bills.map((b,i)=>({
-        id:b.id, user_id:supaUser.id, name:b.name, category:b.category||'Other',
-        amount:b.amount||null, website:b.website||null, notes:b.notes||null,
-        autopay:!!b.autopay, paid:!!b.paid, sort_order:i
-      })));
-    }
-    // Upsert sessions
-    if(sessions.length){
-      await supa.from('sessions').upsert(sessions.map(s=>({
-        id:s.id, user_id:supaUser.id, month:s.month, year:s.year,
-        start_amt:s.startAmt||0, payments:s.payments||[],
-        paid_at:s.paidAt?new Date(s.paidAt).toISOString():null,
-        saved_at:new Date(s.savedAt||Date.now()).toISOString()
-      })));
-    }
-    // Upsert settings
-    await supa.from('user_settings').upsert({
-      user_id:supaUser.id, categories:CAT_ORDER, updated_at:new Date().toISOString()
-    });
-  } catch(e){ console.warn('Supabase save error:', e); }
-  setSyncing(false);
-}
-
-// ── INIT AUTH ─────────────────────────────────────────────
-async function initAuth(){
-  // Listen for auth state changes
-  supa.auth.onAuthStateChange(async (event, session) => {
-    if(session?.user){
-      supaUser = session.user;
-      updateNavUser(supaUser);
-      hideAuthOverlay();
-      await supaLoad();
-      renderHome();
-    } else {
-      supaUser = null;
-      updateNavUser(null);
-      showAuthOverlay();
-    }
-  });
-  // Check existing session
-  const { data: { session } } = await supa.auth.getSession();
-  if(session?.user){
-    supaUser = session.user;
-    updateNavUser(supaUser);
-    hideAuthOverlay();
-    await supaLoad();
-    renderHome();
-  } else {
-    showAuthOverlay();
-  }
-}
-
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const curMonth=now.getMonth();
   const curYear=now.getFullYear();
