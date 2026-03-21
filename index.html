@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bills Worksheet</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -691,9 +692,54 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 .url-test-msg.ok{color:#2e7d52;}
 .url-test-msg.fail{color:#c0392b;}
 
+
+/* ─── AUTH OVERLAY ───────────────────── */
+.auth-overlay{position:fixed;inset:0;background:#0A2463;display:flex;align-items:center;justify-content:center;z-index:9999;}
+.auth-overlay.hidden{display:none;}
+.auth-card{background:white;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.auth-brand{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0A2463;margin-bottom:4px;}
+.auth-brand em{font-style:italic;color:#F72585;}
+.auth-sub{font-size:13px;color:#829399;margin-bottom:28px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.auth-tab{flex:1;padding:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;color:#829399;transition:all .14s;}
+.auth-tab.active{background:#0A2463;color:white;}
+.auth-field{margin-bottom:14px;}
+.auth-field label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#829399;margin-bottom:5px;}
+.auth-field input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:#0A2463;outline:none;transition:border-color .14s;box-sizing:border-box;}
+.auth-field input:focus{border-color:#F72585;box-shadow:0 0 0 3px rgba(247,37,133,.1);}
+.auth-btn{width:100%;background:#F72585;color:white;border:none;border-radius:8px;padding:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .14s;margin-top:4px;}
+.auth-btn:hover{background:#d41870;}
+.auth-btn:disabled{background:#ccc;cursor:not-allowed;}
+.auth-msg{font-size:12px;margin-top:10px;min-height:18px;text-align:center;}
+.auth-msg.err{color:#c0392b;}
+.auth-msg.ok{color:#2e7d52;}
+.auth-user-bar{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,.7);}
+.auth-user-email{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.auth-signout{background:none;border:1px solid rgba(255,255,255,.25);border-radius:5px;color:rgba(255,255,255,.7);font-size:10px;font-family:'Plus Jakarta Sans',sans-serif;padding:3px 8px;cursor:pointer;transition:all .14s;}
+.auth-signout:hover{border-color:rgba(255,255,255,.6);color:white;}
+.auth-sync-dot{width:6px;height:6px;border-radius:50%;background:#4caf7d;flex-shrink:0;}
+.auth-sync-dot.syncing{background:#F72585;animation:pulse .9s infinite;}
+
 </style>
 </head>
 <body>
+
+
+<!-- AUTH OVERLAY -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-brand">Bills <em>Worksheet</em></div>
+    <div class="auth-sub">Sign in to sync your data across devices</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+      <button class="auth-tab" id="auth-tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+    <div class="auth-field"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')authSubmit()"></div>
+    <div class="auth-field"><label>Password</label><input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')authSubmit()"></div>
+    <button class="auth-btn" id="auth-btn" onclick="authSubmit()">Sign In</button>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
 
 <nav>
   <div class="nav-brand">Bills <em>Worksheet</em></div>
@@ -707,6 +753,7 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
     <div class="summary-pill"><span class="lbl">Monthly</span><span class="val" id="nav-total">$0.00</span></div>
     <div class="summary-pill"><span class="lbl">Paid</span><span class="val" id="nav-paid">0/0</span></div>
     <button class="btn-pay" onclick="openWizard()">⚡ Track Bills</button>
+    <div class="auth-user-bar" id="auth-user-bar" style="display:none"><div class="auth-sync-dot" id="auth-sync-dot"></div><span class="auth-user-email" id="auth-user-email"></span><button class="auth-signout" onclick="signOut()">Sign out</button></div>
     <button class="nav-hamburger" id="nav-hamburger" onclick="toggleNavMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -1004,6 +1051,157 @@ tr.cc-row .pt-amt-wrap{border-color:var(--blue);}
 // If tutorial was suppressed by an old key value ('1' not 'true'), clear it so it shows again
 if(localStorage.getItem('bw-tutorial-suppressed')==='1') localStorage.removeItem('bw-tutorial-suppressed');
 
+
+// ── SUPABASE ──────────────────────────────────────────────
+const SUPA_URL = 'https://weljchhyczlsmszahsaj.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndlbGpjaGh5Y3psc21zemFoc2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTgxNjMsImV4cCI6MjA4OTYzNDE2M30.Zxjb07HxsAZNR0zaMnv8l-Q17OYgcDArElElMX_6sJY';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+let supaUser = null;
+let isSyncing = false;
+
+// ── AUTH UI ───────────────────────────────────────────────
+function switchAuthTab(tab){
+  document.getElementById('auth-tab-signin').className = 'auth-tab' + (tab==='signin'?' active':'');
+  document.getElementById('auth-tab-signup').className = 'auth-tab' + (tab==='signup'?' active':'');
+  document.getElementById('auth-btn').textContent = tab==='signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-msg').textContent = '';
+  document.getElementById('auth-msg').className = 'auth-msg';
+  window._authTab = tab;
+}
+window._authTab = 'signin';
+
+async function authSubmit(){
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+  const msg = document.getElementById('auth-msg');
+  if(!email || !password){ msg.className='auth-msg err'; msg.textContent='Please enter email and password.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Please wait…';
+  msg.textContent = '';
+  let error;
+  if(window._authTab === 'signup'){
+    ({error} = await supa.auth.signUp({email, password}));
+    if(!error){ msg.className='auth-msg ok'; msg.textContent='Check your email to confirm your account!'; btn.disabled=false; btn.textContent='Create Account'; return; }
+  } else {
+    ({error} = await supa.auth.signInWithPassword({email, password}));
+  }
+  btn.disabled = false;
+  btn.textContent = window._authTab === 'signin' ? 'Sign In' : 'Create Account';
+  if(error){ msg.className='auth-msg err'; msg.textContent=error.message; }
+}
+
+function showAuthOverlay(){ document.getElementById('auth-overlay').classList.remove('hidden'); }
+function hideAuthOverlay(){ document.getElementById('auth-overlay').classList.add('hidden'); }
+
+function updateNavUser(user){
+  const bar = document.getElementById('auth-user-bar');
+  const emailEl = document.getElementById('auth-user-email');
+  if(user){ bar.style.display='flex'; emailEl.textContent=user.email; }
+  else { bar.style.display='none'; }
+}
+
+async function signOut(){
+  await supa.auth.signOut();
+  supaUser = null;
+  bills=[]; sessions=[]; settings={}; CAT_ORDER=[...DEFAULT_CATS];
+  lsSave();
+  updateNavUser(null);
+  showAuthOverlay();
+}
+
+// ── SUPABASE SYNC ─────────────────────────────────────────
+function setSyncing(on){
+  isSyncing = on;
+  const dot = document.getElementById('auth-sync-dot');
+  if(dot) dot.className = 'auth-sync-dot' + (on ? ' syncing' : '');
+}
+
+async function supaLoad(){
+  if(!supaUser) return;
+  setSyncing(true);
+  try {
+    const [billsRes, sessRes, setRes] = await Promise.all([
+      supa.from('bills').select('*').order('sort_order'),
+      supa.from('sessions').select('*').order('year').order('month'),
+      supa.from('user_settings').select('*').eq('user_id', supaUser.id).single()
+    ]);
+    if(billsRes.data) bills = billsRes.data.map(r=>({
+      id:r.id, name:r.name, category:r.category, amount:r.amount,
+      website:r.website, notes:r.notes, autopay:r.autopay, paid:r.paid, sortOrder:r.sort_order
+    }));
+    if(sessRes.data) sessions = sessRes.data.map(r=>({
+      id:r.id, month:r.month, year:r.year, startAmt:r.start_amt,
+      payments:r.payments||[], paidAt:r.paid_at?new Date(r.paid_at).getTime():null,
+      savedAt:new Date(r.saved_at).getTime()
+    }));
+    if(setRes.data){
+      if(Array.isArray(setRes.data.categories)&&setRes.data.categories.length) CAT_ORDER=[...setRes.data.categories];
+    }
+    lsSave();
+    renderHome(); renderPayees();
+  } catch(e){ console.warn('Supabase load error:', e); }
+  setSyncing(false);
+}
+
+async function supaSave(){
+  if(!supaUser) return;
+  setSyncing(true);
+  try {
+    // Upsert bills
+    if(bills.length){
+      await supa.from('bills').upsert(bills.map((b,i)=>({
+        id:b.id, user_id:supaUser.id, name:b.name, category:b.category||'Other',
+        amount:b.amount||null, website:b.website||null, notes:b.notes||null,
+        autopay:!!b.autopay, paid:!!b.paid, sort_order:i
+      })));
+    }
+    // Upsert sessions
+    if(sessions.length){
+      await supa.from('sessions').upsert(sessions.map(s=>({
+        id:s.id, user_id:supaUser.id, month:s.month, year:s.year,
+        start_amt:s.startAmt||0, payments:s.payments||[],
+        paid_at:s.paidAt?new Date(s.paidAt).toISOString():null,
+        saved_at:new Date(s.savedAt||Date.now()).toISOString()
+      })));
+    }
+    // Upsert settings
+    await supa.from('user_settings').upsert({
+      user_id:supaUser.id, categories:CAT_ORDER, updated_at:new Date().toISOString()
+    });
+  } catch(e){ console.warn('Supabase save error:', e); }
+  setSyncing(false);
+}
+
+// ── INIT AUTH ─────────────────────────────────────────────
+async function initAuth(){
+  // Listen for auth state changes
+  supa.auth.onAuthStateChange(async (event, session) => {
+    if(session?.user){
+      supaUser = session.user;
+      updateNavUser(supaUser);
+      hideAuthOverlay();
+      await supaLoad();
+      renderHome();
+    } else {
+      supaUser = null;
+      updateNavUser(null);
+      showAuthOverlay();
+    }
+  });
+  // Check existing session
+  const { data: { session } } = await supa.auth.getSession();
+  if(session?.user){
+    supaUser = session.user;
+    updateNavUser(supaUser);
+    hideAuthOverlay();
+    await supaLoad();
+    renderHome();
+  } else {
+    showAuthOverlay();
+  }
+}
+
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 let CAT_ORDER=['Housing','Utilities','Insurance','Transportation','Healthcare','Food & Grocery','Subscriptions','Entertainment','Loans','Other'];
 
@@ -1097,6 +1295,7 @@ async function idbClearHandle(){
 // ── Main persist ──────────────────────────────────────────
 async function persist(){
   lsSave(); // always keep localStorage current as safety net
+  supaSave(); // sync to Supabase if logged in
   if(fileHandle){
     const ok = await fsWrite();
     if(ok){
@@ -1251,7 +1450,8 @@ function setupImportDrop(){
 // ── Init storage ──────────────────────────────────────────
 async function initStorage(){
   lsLoad(); // load from localStorage immediately (fast)
-  renderHome();
+  renderHome(); // show something immediately
+  await initAuth(); // then connect to Supabase
 
   // Try to reconnect previously linked file
   if(FS_SUPPORTED){
@@ -1380,7 +1580,158 @@ function renderYearlyBanner(){
 /* ─── HOME ───────────────────────────────── */
 function renderHome(){
   const now=new Date();
-  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  
+// ── SUPABASE ──────────────────────────────────────────────
+const SUPA_URL = 'https://weljchhyczlsmszahsaj.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndlbGpjaGh5Y3psc21zemFoc2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTgxNjMsImV4cCI6MjA4OTYzNDE2M30.Zxjb07HxsAZNR0zaMnv8l-Q17OYgcDArElElMX_6sJY';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+let supaUser = null;
+let isSyncing = false;
+
+// ── AUTH UI ───────────────────────────────────────────────
+function switchAuthTab(tab){
+  document.getElementById('auth-tab-signin').className = 'auth-tab' + (tab==='signin'?' active':'');
+  document.getElementById('auth-tab-signup').className = 'auth-tab' + (tab==='signup'?' active':'');
+  document.getElementById('auth-btn').textContent = tab==='signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-msg').textContent = '';
+  document.getElementById('auth-msg').className = 'auth-msg';
+  window._authTab = tab;
+}
+window._authTab = 'signin';
+
+async function authSubmit(){
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+  const msg = document.getElementById('auth-msg');
+  if(!email || !password){ msg.className='auth-msg err'; msg.textContent='Please enter email and password.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Please wait…';
+  msg.textContent = '';
+  let error;
+  if(window._authTab === 'signup'){
+    ({error} = await supa.auth.signUp({email, password}));
+    if(!error){ msg.className='auth-msg ok'; msg.textContent='Check your email to confirm your account!'; btn.disabled=false; btn.textContent='Create Account'; return; }
+  } else {
+    ({error} = await supa.auth.signInWithPassword({email, password}));
+  }
+  btn.disabled = false;
+  btn.textContent = window._authTab === 'signin' ? 'Sign In' : 'Create Account';
+  if(error){ msg.className='auth-msg err'; msg.textContent=error.message; }
+}
+
+function showAuthOverlay(){ document.getElementById('auth-overlay').classList.remove('hidden'); }
+function hideAuthOverlay(){ document.getElementById('auth-overlay').classList.add('hidden'); }
+
+function updateNavUser(user){
+  const bar = document.getElementById('auth-user-bar');
+  const emailEl = document.getElementById('auth-user-email');
+  if(user){ bar.style.display='flex'; emailEl.textContent=user.email; }
+  else { bar.style.display='none'; }
+}
+
+async function signOut(){
+  await supa.auth.signOut();
+  supaUser = null;
+  bills=[]; sessions=[]; settings={}; CAT_ORDER=[...DEFAULT_CATS];
+  lsSave();
+  updateNavUser(null);
+  showAuthOverlay();
+}
+
+// ── SUPABASE SYNC ─────────────────────────────────────────
+function setSyncing(on){
+  isSyncing = on;
+  const dot = document.getElementById('auth-sync-dot');
+  if(dot) dot.className = 'auth-sync-dot' + (on ? ' syncing' : '');
+}
+
+async function supaLoad(){
+  if(!supaUser) return;
+  setSyncing(true);
+  try {
+    const [billsRes, sessRes, setRes] = await Promise.all([
+      supa.from('bills').select('*').order('sort_order'),
+      supa.from('sessions').select('*').order('year').order('month'),
+      supa.from('user_settings').select('*').eq('user_id', supaUser.id).single()
+    ]);
+    if(billsRes.data) bills = billsRes.data.map(r=>({
+      id:r.id, name:r.name, category:r.category, amount:r.amount,
+      website:r.website, notes:r.notes, autopay:r.autopay, paid:r.paid, sortOrder:r.sort_order
+    }));
+    if(sessRes.data) sessions = sessRes.data.map(r=>({
+      id:r.id, month:r.month, year:r.year, startAmt:r.start_amt,
+      payments:r.payments||[], paidAt:r.paid_at?new Date(r.paid_at).getTime():null,
+      savedAt:new Date(r.saved_at).getTime()
+    }));
+    if(setRes.data){
+      if(Array.isArray(setRes.data.categories)&&setRes.data.categories.length) CAT_ORDER=[...setRes.data.categories];
+    }
+    lsSave();
+    renderHome(); renderPayees();
+  } catch(e){ console.warn('Supabase load error:', e); }
+  setSyncing(false);
+}
+
+async function supaSave(){
+  if(!supaUser) return;
+  setSyncing(true);
+  try {
+    // Upsert bills
+    if(bills.length){
+      await supa.from('bills').upsert(bills.map((b,i)=>({
+        id:b.id, user_id:supaUser.id, name:b.name, category:b.category||'Other',
+        amount:b.amount||null, website:b.website||null, notes:b.notes||null,
+        autopay:!!b.autopay, paid:!!b.paid, sort_order:i
+      })));
+    }
+    // Upsert sessions
+    if(sessions.length){
+      await supa.from('sessions').upsert(sessions.map(s=>({
+        id:s.id, user_id:supaUser.id, month:s.month, year:s.year,
+        start_amt:s.startAmt||0, payments:s.payments||[],
+        paid_at:s.paidAt?new Date(s.paidAt).toISOString():null,
+        saved_at:new Date(s.savedAt||Date.now()).toISOString()
+      })));
+    }
+    // Upsert settings
+    await supa.from('user_settings').upsert({
+      user_id:supaUser.id, categories:CAT_ORDER, updated_at:new Date().toISOString()
+    });
+  } catch(e){ console.warn('Supabase save error:', e); }
+  setSyncing(false);
+}
+
+// ── INIT AUTH ─────────────────────────────────────────────
+async function initAuth(){
+  // Listen for auth state changes
+  supa.auth.onAuthStateChange(async (event, session) => {
+    if(session?.user){
+      supaUser = session.user;
+      updateNavUser(supaUser);
+      hideAuthOverlay();
+      await supaLoad();
+      renderHome();
+    } else {
+      supaUser = null;
+      updateNavUser(null);
+      showAuthOverlay();
+    }
+  });
+  // Check existing session
+  const { data: { session } } = await supa.auth.getSession();
+  if(session?.user){
+    supaUser = session.user;
+    updateNavUser(supaUser);
+    hideAuthOverlay();
+    await supaLoad();
+    renderHome();
+  } else {
+    showAuthOverlay();
+  }
+}
+
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const curMonth=now.getMonth();
   const curYear=now.getFullYear();
   const curMonthName=MONTHS[curMonth];
